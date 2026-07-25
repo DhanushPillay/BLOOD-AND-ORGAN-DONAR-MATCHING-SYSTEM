@@ -31,21 +31,54 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach(({ reject }) => reject(error));
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-        window.location.href = '/login';
-      }
-    }
+    const originalRequest = error.config;
+
     if (error.response?.status === 403 && error.response?.data?.code === 'invalid_csrf_token') {
-      if (!error.config._retry) {
-        error.config._retry = true;
+      if (!originalRequest._csrfRetry) {
+        originalRequest._csrfRetry = true;
         await fetchCsrfToken();
-        return api(error.config);
+        return api(originalRequest);
       }
     }
+
+    if (error.response?.status === 401 && !originalRequest._authRetry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => api(originalRequest));
+      }
+
+      originalRequest._authRetry = true;
+      isRefreshing = true;
+
+      try {
+        await axios.post(`${API_URL}/api/auth/refresh`, null, { withCredentials: true });
+        await fetchCsrfToken();
+        failedQueue.forEach(({ resolve }) => resolve());
+        failedQueue = [];
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError);
+        if (!['/login', '/signup'].includes(window.location.pathname)) {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     return Promise.reject(error);
   }
 );
