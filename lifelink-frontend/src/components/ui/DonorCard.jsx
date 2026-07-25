@@ -6,10 +6,17 @@
  */
 
 import { formatDistance } from '../../utils/helpers';
+import { motion } from 'framer-motion';
 
 export default function DonorCard({ donor, type, onContact }) {
   return (
-    <div className="donor-card glass">
+    <motion.div 
+      className="donor-card glass"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, scale: 1.01 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
       <div className="donor-card-header">
         <div>
           <span className="badge badge-green">{donor.bloodGroup}</span>
@@ -69,6 +76,6 @@ export default function DonorCard({ donor, type, onContact }) {
       >
         Contact Securely
       </button>
-    </div>
+    </motion.div>
   );
 }
