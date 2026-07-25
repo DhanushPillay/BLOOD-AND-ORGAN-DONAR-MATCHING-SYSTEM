@@ -4,17 +4,11 @@ const clients = new Map(); // Map of userId -> Set of Response objects
 
 function initSSE(app) {
   app.get("/api/stream", (req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-    
     // SECURITY: Token must come from httpOnly cookie (accessToken).
-    // Query string fallback removed — use cookie-based auth only.
+    // Auth check BEFORE flushHeaders to avoid sending HTTP 200 on failure.
     const token = req.cookies?.accessToken;
     if (!token) {
-      res.status(401).end("Authentication required");
-      return;
+      return res.status(401).end("Authentication required");
     }
 
     let userId;
@@ -22,9 +16,13 @@ function initSSE(app) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       userId = decoded.id;
     } catch (err) {
-      res.status(401).end("Invalid token");
-      return;
+      return res.status(401).end("Invalid token");
     }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
     if (!clients.has(userId)) {
       clients.set(userId, new Set());

@@ -13,6 +13,7 @@ export const fetchCsrfToken = async () => {
   try {
     const { data } = await axios.get(`${API_URL}/api/csrf-token`, {
       withCredentials: true,
+      timeout: 5000,
     });
     csrfToken = data.csrfToken;
     return csrfToken;

@@ -29,13 +29,6 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
-app.use((req, res, next) => {
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  next();
-});
-
 app.use(requestId);
 
 // Rate limiting
@@ -52,7 +45,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(new Error('Not allowed by CORS - no origin'));
+    // Allow requests with no origin (server-to-server, health checks, curl, mobile apps)
+    if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);

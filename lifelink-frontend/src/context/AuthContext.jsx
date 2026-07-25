@@ -15,35 +15,39 @@ export function AuthProvider({ children }) {
 
   // Check authentication on mount by calling /auth/me
   useEffect(() => {
-    const initAuth = async () => {
-      await fetchCsrfToken();
-      
-      const checkAuth = async () => {
-        try {
-          const { data } = await api.get('/auth/me');
-          const userData = data.user || data;
-          setUser(userData);
-          
-          setToken('cookie-auth');
-          
-          setBlockedIds(userData.blockedIds || []);
+    let cancelled = false;
 
-          const [notifsRes, callsRes] = await Promise.all([
-            api.get('/notifications').catch(() => ({ data: [] })),
-            api.get('/calls').catch(() => ({ data: [] })),
-          ]);
-          setNotifications(notifsRes.data || []);
-          setCallLogs(callsRes.data || []);
-        } catch (err) {
-          setUser(null);
-          setToken(null);
-        } finally {
-          setLoading(false);
-        }
-      };
-      checkAuth();
+    const initAuth = async () => {
+      // Fetch CSRF token in parallel — don't block auth check on it
+      fetchCsrfToken();
+
+      try {
+        const { data } = await api.get('/auth/me');
+        if (cancelled) return;
+        const userData = data.user || data;
+        setUser(userData);
+        
+        setToken('cookie-auth');
+        
+        setBlockedIds(userData.blockedIds || []);
+
+        const [notifsRes, callsRes] = await Promise.all([
+          api.get('/notifications').catch(() => ({ data: [] })),
+          api.get('/calls').catch(() => ({ data: [] })),
+        ]);
+        setNotifications(notifsRes.data || []);
+        setCallLogs(callsRes.data || []);
+      } catch (err) {
+        if (cancelled) return;
+        setUser(null);
+        setToken(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     initAuth();
+
+    return () => { cancelled = true; };
   }, []);
 
   // ── FCM: Initialize on login ───────────────────────
