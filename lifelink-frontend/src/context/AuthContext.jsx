@@ -27,7 +27,8 @@ export function AuthProvider({ children }) {
         const userData = data.user || data;
         setUser(userData);
         
-        setToken('cookie-auth');
+        const localToken = localStorage.getItem('accessToken');
+        setToken(localToken || 'cookie-auth');
         
         setBlockedIds(userData.blockedIds || []);
 
@@ -88,6 +89,8 @@ export function AuthProvider({ children }) {
       const userData = data.user || data;
       setUser(userData);
       setToken(data.token);
+      localStorage.setItem('accessToken', data.token);
+      fetchCsrfToken();
       setBlockedIds(userData.blockedIds || []);
       return { success: true, user: userData };
     } catch (err) {
@@ -102,6 +105,8 @@ export function AuthProvider({ children }) {
       const userData = data.user || data;
       setUser(userData);
       setToken(data.token);
+      localStorage.setItem('accessToken', data.token);
+      fetchCsrfToken();
       setBlockedIds(userData.blockedIds || []);
 
       const [notifsRes, callsRes] = await Promise.all([
@@ -121,6 +126,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
+    localStorage.removeItem('accessToken');
     setCallLogs([]);
     setNotifications([]);
     setBlockedIds([]);
@@ -147,6 +153,8 @@ export function AuthProvider({ children }) {
       const userData = data.user || data;
       setUser(userData);
       setToken(data.token);
+      localStorage.setItem('accessToken', data.token);
+      fetchCsrfToken();
       setBlockedIds(userData.blockedIds || []);
 
       const [notifsRes, callsRes] = await Promise.all([

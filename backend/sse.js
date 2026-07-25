@@ -4,9 +4,9 @@ const clients = new Map(); // Map of userId -> Set of Response objects
 
 function initSSE(app) {
   app.get("/api/stream", (req, res) => {
-    // SECURITY: Token must come from httpOnly cookie (accessToken).
-    // Auth check BEFORE flushHeaders to avoid sending HTTP 200 on failure.
-    const token = req.cookies?.accessToken;
+    // SECURITY: Token usually comes from httpOnly cookie (accessToken).
+    // Fallback to query parameter if cookies are blocked (cross-domain).
+    const token = req.cookies?.accessToken || req.query.token;
     if (!token) {
       return res.status(401).end("Authentication required");
     }

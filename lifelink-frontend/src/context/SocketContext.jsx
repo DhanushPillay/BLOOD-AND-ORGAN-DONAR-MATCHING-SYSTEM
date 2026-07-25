@@ -35,7 +35,7 @@ export function SocketProvider({ children }) {
         ? 'http://localhost:5000'
         : 'https://blood-and-organ-donar-matching-system.onrender.com');
 
-    const url = `${serverUrl}/api/stream`;
+    const url = `${serverUrl}/api/stream?token=${token}`;
     console.log('[SSE] Connecting to server');
 
     const es = new EventSource(url, { withCredentials: true });

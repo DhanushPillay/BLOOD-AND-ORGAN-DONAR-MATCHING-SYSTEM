@@ -11,8 +11,15 @@ let csrfToken = null;
 
 export const fetchCsrfToken = async () => {
   try {
+    const token = localStorage.getItem('accessToken');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const { data } = await axios.get(`${API_URL}/api/csrf-token`, {
       withCredentials: true,
+      headers,
       timeout: 5000,
     });
     csrfToken = data.csrfToken;
@@ -24,6 +31,11 @@ export const fetchCsrfToken = async () => {
 };
 
 api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const unsafeMethods = ['post', 'put', 'patch', 'delete'];
   if (config.method && unsafeMethods.includes(config.method.toLowerCase()) && csrfToken) {
     config.headers['X-CSRF-Token'] = csrfToken;

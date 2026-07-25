@@ -3,7 +3,10 @@ const { doubleCsrf } = require("csrf-csrf");
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
   getSessionIdentifier: (req) => {
-    const token = req.cookies?.accessToken || req.cookies?.refreshToken;
+    let token = req.cookies?.accessToken || req.cookies?.refreshToken;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
     if (token) return token;
     return req.ip + "|" + (req.get("User-Agent") || "");
   },
