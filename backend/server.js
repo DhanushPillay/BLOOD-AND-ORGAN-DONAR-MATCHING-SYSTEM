@@ -24,14 +24,10 @@ const app = express();
 
 app.set('trust proxy', process.env.TRUST_PROXY || 1);
 
-app.use(helmet());
-
-app.use((req, res, next) => {
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  next();
-});
+// Security HTTP headers
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 
 app.use(requestId);
 
@@ -49,7 +45,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(new Error('Not allowed by CORS - no origin'));
+    // Allow requests with no origin (server-to-server, health checks, curl, mobile apps)
+    if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -66,10 +63,12 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 app.use(sanitize);
-app.use(generateCsrfToken);
 
 app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.json({ csrfToken: generateCsrfToken(req, res) });
 });
 
 const connectDB = require("./config/db");
@@ -91,6 +90,14 @@ app.use((req, res, next) => {
   res.status(404);
   const error = new Error(`Route Not Found - ${req.originalUrl}`);
   next(error);
+});
+
+app.use((err, req, res, next) => {
+  if (err.code === "EBADCSRFTOKEN") {
+    res.status(403);
+    return res.json({ message: "Invalid CSRF token", code: "invalid_csrf_token" });
+  }
+  next(err);
 });
 
 app.use(errorHandler);

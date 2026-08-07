@@ -10,8 +10,10 @@ const errorHandler = (err, req, res, next) => {
     stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
   });
 
-  const message = process.env.NODE_ENV === "production"
-    ? "An error occurred"
+  // Only mask 500 internal server errors in production. Expose 400-level client errors.
+  const isServerError = statusCode >= 500;
+  const message = (process.env.NODE_ENV === "production" && isServerError)
+    ? "An internal server error occurred"
     : err.message;
 
   res.status(statusCode);

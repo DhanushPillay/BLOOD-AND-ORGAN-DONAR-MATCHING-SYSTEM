@@ -6,6 +6,7 @@ const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const CallLog = require("../models/CallLog");
+const Message = require("../models/Message");
 const logger = require("../utils/logger");
 const securityLogger = require("../utils/securityLogger");
 const {
@@ -124,14 +125,14 @@ const registerUser = asyncHandler(async (req, res) => {
     res.cookie('accessToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000
     });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/auth'
     });
@@ -205,14 +206,14 @@ const loginUser = asyncHandler(async (req, res) => {
     res.cookie('accessToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000
     });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/auth'
     });
@@ -287,7 +288,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     await sendEmail({
       email: user.email,
       subject: "Password Reset OTP",
-      message: `Your OTP for password reset is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`
+      message: `Your OTP for password reset is: ${otp}\n\nThis OTP will expire in 5 minutes.\n\nIf you did not request this, please ignore this email.`
     });
   }
 
@@ -440,8 +441,10 @@ const deleteAccount = asyncHandler(async (req, res) => {
     }
   }
 
+  await revokeAllUserTokens(user._id);
   await CallLog.deleteMany({ user: user._id });
   await Notification.deleteMany({ user: user._id });
+  await Message.deleteMany({ $or: [{ sender: user._id }, { receiver: user._id }] });
   await User.findByIdAndDelete(user._id);
 
   res.json({ success: true });
@@ -550,14 +553,14 @@ const googleAuth = asyncHandler(async (req, res) => {
   res.cookie('accessToken', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 15 * 60 * 1000
   });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/api/auth'
   });
@@ -590,13 +593,13 @@ const logout = asyncHandler(async (req, res) => {
   res.cookie('accessToken', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 0
   });
   res.cookie('refreshToken', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 0,
     path: '/api/auth'
   });
@@ -628,6 +631,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 
   const newRefreshToken = await rotateRefreshToken(refreshToken);
+
+  if (!newRefreshToken) {
+    securityLogger.tokenRefreshFailed(req.ip, 'Token rotation failed - token may have been reused');
+    res.status(401);
+    throw new Error("Refresh token has been compromised. Please log in again.");
+  }
+
   const newAccessToken = generateToken(user._id, user.role);
 
   securityLogger.tokenRefreshed(user._id, req.ip);
@@ -635,14 +645,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   res.cookie('accessToken', newAccessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 15 * 60 * 1000
   });
 
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/api/auth'
   });

@@ -33,40 +33,48 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
+import { useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import { PageTransition } from './components/layout/PageTransition';
+
 function AppRoutes() {
+  const location = useLocation();
+  
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
-      <Route path="/signup" element={<PublicOnlyRoute><SignUp /></PublicOnlyRoute>} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route
-        path="/complete-profile"
-        element={
-          <ProtectedRoute>
-            <CompleteProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="search/:type" element={<SearchPage />} />
-        <Route path="calls" element={<CallLogs />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="help" element={<HelpCenter />} />
-        <Route path="chat" element={<Chat />} />
-        <Route path="chat/:userId" element={<Chat />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname.split('/')[1] || 'root'}>
+        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><PublicOnlyRoute><Login /></PublicOnlyRoute></PageTransition>} />
+        <Route path="/signup" element={<PageTransition><PublicOnlyRoute><SignUp /></PublicOnlyRoute></PageTransition>} />
+        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute>
+              <PageTransition><CompleteProfile /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <PageTransition transitionKey="dashboard"><DashboardLayout /></PageTransition>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="search/:type" element={<SearchPage />} />
+          <Route path="calls" element={<CallLogs />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<HelpCenter />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="chat/:userId" element={<Chat />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

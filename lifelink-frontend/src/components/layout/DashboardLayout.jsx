@@ -9,6 +9,8 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation as useAppLocation } from '../../context/LocationContext';
+import { AnimatePresence } from 'framer-motion';
+import { PageTransition } from './PageTransition';
 import PaperBackground from '../ui/PaperBackground';
 import './DashboardLayout.css';
 
@@ -285,13 +287,20 @@ export function TopBar() {
 }
 
 export default function DashboardLayout({ children }) {
+  const routerLocation = useLocation();
   return (
     <div className="dashboard-layout">
       <PaperBackground />
       <TopBar />
       <div className="dashboard-body">
         <Sidebar />
-        <main className="dashboard-main">{children || <Outlet />}</main>
+        <main className="dashboard-main">
+          <AnimatePresence mode="wait">
+            <PageTransition key={routerLocation.pathname}>
+              {children || <Outlet />}
+            </PageTransition>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );

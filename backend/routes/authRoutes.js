@@ -52,18 +52,20 @@ const googleLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const { doubleCsrfProtection } = require("../middleware/csrf");
+
 router.post("/register", registerLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
-router.post("/logout", protect, logout);
+router.post("/logout", protect, doubleCsrfProtection, logout);
 router.post("/refresh", refreshAccessToken);
 router.post("/google", googleLimiter, googleAuth);
 router.post("/forgot-password", passwordResetLimiter, forgotPassword);
 router.post("/reset-password", passwordResetLimiter, resetPassword);
 router.get("/me", protect, getMe);
-router.put("/profile", protect, updateProfile);
-router.post("/delete", protect, deleteAccount);
-router.post("/block/:donorId", protect, blockDonor);
-router.post("/unblock/:donorId", protect, unblockDonor);
-router.post("/fcm-token", protect, saveFCMToken);
+router.put("/profile", protect, doubleCsrfProtection, updateProfile);
+router.post("/delete", protect, doubleCsrfProtection, deleteAccount);
+router.post("/block/:donorId", protect, doubleCsrfProtection, blockDonor);
+router.post("/unblock/:donorId", protect, doubleCsrfProtection, unblockDonor);
+router.post("/fcm-token", protect, doubleCsrfProtection, saveFCMToken);
 
 module.exports = router;

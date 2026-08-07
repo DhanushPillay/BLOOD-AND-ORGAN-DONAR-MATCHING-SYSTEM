@@ -4,20 +4,11 @@ const clients = new Map(); // Map of userId -> Set of Response objects
 
 function initSSE(app) {
   app.get("/api/stream", (req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-    
-    // SECURITY NOTE: Token is passed via query string because SSE doesn't support
-    // custom headers on initial request. In production, consider using:
-    // 1. Short-lived tokens (5-10 minutes) that are exchanged for longer sessions
-    // 2. Token in cookie with Secure and HttpOnly flags
-    // 3. Rate limiting on the SSE endpoint
-    const token = req.query.token;
+    // SECURITY: Token usually comes from httpOnly cookie (accessToken).
+    // Fallback to query parameter if cookies are blocked (cross-domain).
+    const token = req.cookies?.accessToken || req.query.token;
     if (!token) {
-      res.status(401).end("Authentication required");
-      return;
+      return res.status(401).end("Authentication required");
     }
 
     let userId;
@@ -25,9 +16,13 @@ function initSSE(app) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       userId = decoded.id;
     } catch (err) {
-      res.status(401).end("Invalid token");
-      return;
+      return res.status(401).end("Invalid token");
     }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
     if (!clients.has(userId)) {
       clients.set(userId, new Set());

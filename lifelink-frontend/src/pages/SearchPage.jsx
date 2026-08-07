@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import DonorCard from '../components/ui/DonorCard';
+import { DonorCardSkeleton } from '../components/ui/Skeleton';
 import ContactModal from '../components/ui/ContactModal';
 import { useLocation } from '../context/LocationContext';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +26,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     runSearch('');
-  }, [type, location, blockedIds]);
+  }, [type]);
 
   const runSearch = async (q) => {
     if (abortRef.current) {
@@ -106,14 +107,11 @@ export default function SearchPage() {
         </div>
 
         {loading ? (
-          <div className="empty-state glass">
-            <div className="empty-state-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, animation: 'spin 1s linear infinite' }}>
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </div>
-            <p>Searching for donors...</p>
+          <div className="results-grid">
+            <DonorCardSkeleton />
+            <DonorCardSkeleton />
+            <DonorCardSkeleton />
+            <DonorCardSkeleton />
           </div>
         ) : error ? (
           <div className="empty-state glass">
