@@ -180,7 +180,7 @@ function Sidebar() {
 }
 
 export function TopBar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { location, setPincode, requestGPS, loading } = useAppLocation();
   const navigate = useNavigate();
   const [showLocation, setShowLocation] = useState(false);

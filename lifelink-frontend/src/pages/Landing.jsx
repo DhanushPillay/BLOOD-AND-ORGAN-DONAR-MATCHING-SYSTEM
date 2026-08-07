@@ -17,7 +17,6 @@ export default function Landing() {
   const [pincodeVal, setPincodeVal] = useState('');
   const [results, setResults] = useState(null);
   const [searchType, setSearchType] = useState('blood');
-  const [locationGranted, setLocationGranted] = useState(false);
   const [contactDonor, setContactDonor] = useState(null);
   const [showContact, setShowContact] = useState(false);
 
@@ -31,14 +30,13 @@ export default function Landing() {
   const handleGPSClick = async () => {
     try {
       const loc = await requestGPS();
-      setLocationGranted(true);
       if (loc && loc.pincode) {
         setPincodeVal(loc.pincode);
       } else {
         setPincodeVal('');
       }
     } catch {
-      setLocationGranted(false);
+      // Ignore GPS errors; UI keeps existing location value.
     }
   };
 
